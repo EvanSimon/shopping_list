@@ -20,10 +20,14 @@ class _NewItemState extends State<NewItem> {
   var _enteredName = '';
   var _enterdQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
+  var _isSending = false;
 
   void saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      setState(() {
+        _isSending = true;
+      });
       final url = Uri.https(
           'notify-ac32d-default-rtdb.firebaseio.com', 'shopping-list.json');
       final response = await http.post(
@@ -40,13 +44,22 @@ class _NewItemState extends State<NewItem> {
         ),
       );
 
+      final Map<String, dynamic> resData = json.decode(response.body);
+
       print(response.body);
       print(response.statusCode);
 
       if (!context.mounted) {
         return;
       }
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(
+        GroceryItem(
+          id: resData['name'],
+          name: _enteredName,
+          quantity: _enterdQuantity,
+          category: _selectedCategory,
+        ),
+      );
     }
   }
 
@@ -141,16 +154,26 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () {
-                      _formKey.currentState!.reset();
-                    },
+                    onPressed: _isSending
+                        ? null
+                        : () {
+                            _formKey.currentState!.reset();
+                          },
                     child: const Text('Reset'),
                   ),
                   ElevatedButton(
-                    onPressed: saveItem,
-                    child: const Text(
-                      'Add item',
-                    ),
+                    onPressed: _isSending ? null : saveItem,
+                    child: _isSending
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(),
+                          )
+                        : _isSending
+                            ? null
+                            : const Text(
+                                'Add item',
+                              ),
                   )
                 ],
               ),
